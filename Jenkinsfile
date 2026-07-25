@@ -20,7 +20,7 @@ pipeline {
                 
             }
         }
-        
+
         stage('Test') {
             agent {
                 docker {
@@ -31,6 +31,7 @@ pipeline {
             steps {
                 sh '''
                     npm test
+                    test -f build/index.html
                 '''
             }
         }
