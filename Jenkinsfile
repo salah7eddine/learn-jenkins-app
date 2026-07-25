@@ -79,5 +79,24 @@ pipeline {
                 }
             }
         }
+
+
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                   npm install netflify-cli -g
+                   netflify --version
+                '''
+            }
+        }
     }
 }
