@@ -42,12 +42,17 @@ pipeline {
                     }
                     steps {
                         sh '''
-                    test -f build/$BUILD_FILE_NAME
-                    npm test
-                    #echo "Build file exists"
-                    grep "Learn Jenkins" build/$BUILD_FILE_NAME
-                    echo "Build file contains expected content"
-                '''
+                        test -f build/$BUILD_FILE_NAME
+                        npm test
+                        #echo "Build file exists"
+                        grep "Learn Jenkins" build/$BUILD_FILE_NAME
+                        echo "Build file contains expected content"
+                    '''
+                    }
+                    post {
+                        always {
+                            junit 'jest-results/junit.xml'
+                        }
                     }
                 }
 
@@ -66,15 +71,13 @@ pipeline {
                     npx playwright test --reporter=html
                 '''
                     }
+                    post {
+                        always {
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            junit 'jest-results/junit.xml'
-            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
         }
     }
 }
