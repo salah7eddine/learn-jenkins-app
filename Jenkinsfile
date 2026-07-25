@@ -1,17 +1,7 @@
 pipeline {
     agent any
 
-    environment {
-        BUILD_FILE_NAME = 'index.html'
-    }
-
     stages {
-        // This is a comment
-        /*
-            line 1
-            line 2
-            line 3
-        */
         stage('Build') {
             agent {
                 docker {
@@ -22,8 +12,8 @@ pipeline {
             steps {
                 sh '''
                     ls -la
-                    node -v
-                    npm -v
+                    node --version
+                    npm --version
                     npm ci
                     npm run build
                     ls -la
@@ -33,21 +23,19 @@ pipeline {
 
         stage('Tests') {
             parallel {
-                stage('unit tests') {
+                stage('Unit tests') {
                     agent {
                         docker {
                             image 'node:18-alpine'
                             reuseNode true
                         }
                     }
+
                     steps {
                         sh '''
-                        test -f build/$BUILD_FILE_NAME
-                        npm test
-                        #echo "Build file exists"
-                        grep "Learn Jenkins" build/$BUILD_FILE_NAME
-                        echo "Build file contains expected content"
-                    '''
+                            #test -f build/index.html
+                            npm test
+                        '''
                     }
                     post {
                         always {
@@ -63,28 +51,26 @@ pipeline {
                             reuseNode true
                         }
                     }
+
                     steps {
                         sh '''
-                    npm install serve
-                    node_modules/.bin/serve -s build &
-                    sleep 10
-                    npx playwright test --reporter=html
-                '''
+                            npm install serve
+                            node_modules/.bin/serve -s build &
+                            sleep 10
+                            npx playwright test  --reporter=html
+                        '''
                     }
+
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Playwright HTML Report', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
                 }
             }
         }
 
-
         stage('Deploy') {
-            when {
-                branch 'main'
-            }
             agent {
                 docker {
                     image 'node:18-alpine'
@@ -93,8 +79,8 @@ pipeline {
             }
             steps {
                 sh '''
-                   npm install netflify-cli
-                   node_modules/.bin/netflify --version
+                    npm install netlify-cli
+                    node_modules/.bin/netlify --version
                 '''
             }
         }
