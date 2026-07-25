@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        BUILD_FILE_NAME = 'index.html'
+    }
+
     stages {
         stage('Build') {
             agent {
@@ -31,7 +35,10 @@ pipeline {
             steps {
                 sh '''
                     npm test
-                    test -f build/index.html
+                    test -f build/$BUILD_FILE_NAME
+                    echo "Build file exists"
+                    grep "Learn Jenkins" build/$BUILD_FILE_NAME
+                    echo "Build file contains expected content"
                 '''
             }
         }
