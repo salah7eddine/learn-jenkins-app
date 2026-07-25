@@ -34,13 +34,19 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm test
                     test -f build/$BUILD_FILE_NAME
+                    npm test
                     echo "Build file exists"
                     grep "Learn Jenkins" build/$BUILD_FILE_NAME
                     echo "Build file contains expected content"
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            junit 'test-results/junit.xml'
         }
     }
 }
