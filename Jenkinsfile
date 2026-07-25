@@ -93,8 +93,8 @@ pipeline {
             }
             steps {
                 sh '''
-                   npm install netflify-cli -g
-                   netflify --version
+                   npm install netflify-cli
+                   node_modules/.bin/netflify --version
                 '''
             }
         }
