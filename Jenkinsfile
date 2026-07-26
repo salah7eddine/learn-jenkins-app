@@ -3,10 +3,11 @@ pipeline {
 
     environment {
         NETLIFY_SITE_ID = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
-        NETFLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
+        NETLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
     }
 
     stages {
+
         stage('Build') {
             agent {
                 docker {
@@ -82,23 +83,14 @@ pipeline {
                     reuseNode true
                 }
             }
-
             steps {
                 sh '''
-            npm install netlify-cli
-
-            node_modules/.bin/netlify --version
-
-            echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
-
-            node_modules/.bin/netlify status
-            
-            node_modules/.bin/netlify deploy \
-                --dir=build \
-                --prod
-                --auth=$NETFLIFY_AUTH_TOKEN \
-                --site=$NETLIFY_SITE_ID
-        '''
+                    npm install netlify-cli
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                    node_modules/.bin/netlify status
+                    node_modules/.bin/netlify deploy --dir=build --prod
+                '''
             }
         }
     }
