@@ -7,7 +7,6 @@ pipeline {
     }
 
     stages {
-
         stage('Build') {
             agent {
                 docker {
@@ -83,17 +82,28 @@ pipeline {
                     reuseNode true
                 }
             }
+
             steps {
                 sh '''
-                    npm install netlify-cli
-                    node_modules/.bin/netlify --version
-                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
-                    node_modules/.bin/netlify status
-                    node_modules/.bin/netlify deploy \
-                        --dir=build --prod \
-                        --site="$NETLIFY_SITE_ID" \
-                        --auth="$NETFLIFY_AUTH_TOKEN"
-                '''
+            apk add --no-cache bash
+
+            npm install --no-save netlify-cli
+
+            node_modules/.bin/netlify --version
+
+            echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+
+            test -d build || {
+                echo "ERROR: build directory does not exist"
+                exit 1
+            }
+
+            node_modules/.bin/netlify deploy \
+                --dir=build \
+                --prod \
+                --site="$NETLIFY_SITE_ID" \
+                --auth="$NETFLIFY_AUTH_TOKEN"
+        '''
             }
         }
     }
