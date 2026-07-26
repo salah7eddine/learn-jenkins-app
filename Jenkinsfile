@@ -7,6 +7,7 @@ pipeline {
     }
 
     stages {
+
         stage('Build') {
             agent {
                 docker {
@@ -84,29 +85,11 @@ pipeline {
             }
             steps {
                 sh '''
-
-                    set -e
-
-                    echo "Checking build artifact..."
-
-                    if [ ! -f build/index.html ]; then
-
-                        echo "ERROR: build/index.html does not exist"
-
-                        exit 1
-
-                    fi
-
-                    npm install --no-save netlify-cli
-
+                    npm install netlify-cli
+                    node_modules/.bin/netlify --version
+                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
                     node_modules/.bin/netlify status
-
-                    node_modules/.bin/netlify deploy \
-
-                        --dir=build \
-
-                        --prod
-
+                    node_modules/.bin/netlify deploy --dir=build --prod --no-build
                 '''
             }
         }
