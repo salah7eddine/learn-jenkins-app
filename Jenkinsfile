@@ -2,13 +2,14 @@ pipeline {
     agent any
 
     environment {
-           NETLIFY_SITE_ID = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
+        NETLIFY_SITE_ID = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
         NETLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
         REACT_APP_VERSION = "1.0.${BUILD_ID}"
         NODE_OPTIONS = '--max-old-space-size=4096'
     }
 
     stages {
+
         stage('Docker') {
             steps {
                 sh 'docker build -t my-playwright .'
@@ -60,15 +61,14 @@ pipeline {
                 stage('E2E') {
                     agent {
                         docker {
-                            image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                            image 'my-playwright'
                             reuseNode true
                         }
                     }
 
                     steps {
                         sh '''
-                            npm install serve
-                            node_modules/.bin/serve -s build &
+                            serve -s build &
                             sleep 10
                             npx playwright test  --reporter=html
                         '''
