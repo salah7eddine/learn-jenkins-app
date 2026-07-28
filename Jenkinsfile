@@ -5,10 +5,10 @@ pipeline {
         NETLIFY_SITE_ID = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
         NETLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
         REACT_APP_VERSION = "1.0.${BUILD_ID}"
+        NODE_OPTIONS = '--max-old-space-size=4096'
     }
 
     stages {
-
         stage('Build') {
             agent {
                 docker {
@@ -56,24 +56,42 @@ pipeline {
                     agent {
                         docker {
                             image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+
                             reuseNode true
                         }
                     }
 
                     steps {
                         sh '''
-                            npm ci
-                            npm install serve
-                            REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
-                            node_modules/.bin/serve -s build &
-                            sleep 10
-                            npx playwright test  --reporter=html
-                        '''
+
+            rm -rf playwright-report test-results
+
+            node_modules/.bin/serve -s build &
+
+            sleep 5
+
+            npx playwright test --reporter=html
+
+        '''
                     }
 
                     post {
                         always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Local E2E', reportTitles: '', useWrapperFileDirectly: true])
+                            publishHTML([
+
+                allowMissing: true,
+
+                alwaysLinkToLastBuild: false,
+
+                keepAll: false,
+
+                reportDir: 'playwright-report',
+
+                reportFiles: 'index.html',
+
+                reportName: 'Local E2E'
+
+            ])
                         }
                     }
                 }
