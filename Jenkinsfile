@@ -4,7 +4,7 @@ pipeline {
     environment {
         NETLIFY_SITE_ID = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
         NETLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
-        REACT_APP_VERSION = "1.0.$BUILD_ID"
+        REACT_APP_VERSION = "1.0.${BUILD_ID}"
     }
 
     stages {
@@ -22,7 +22,8 @@ pipeline {
                     node --version
                     npm --version
                     npm ci
-                    npm run build
+                    rm -rf build
+                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                     ls -la
                 '''
             }
@@ -61,7 +62,9 @@ pipeline {
 
                     steps {
                         sh '''
+                            npm ci
                             npm install serve
+                            REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                             node_modules/.bin/serve -s build &
                             sleep 10
                             npx playwright test  --reporter=html
@@ -91,7 +94,9 @@ pipeline {
 
             steps {
                 sh '''
+                    npm ci
                     npm install netlify-cli node-jq
+                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                     node_modules/.bin/netlify --version
                     echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
                     node_modules/.bin/netlify status
@@ -131,7 +136,9 @@ pipeline {
             steps {
                 sh '''
                     node --version
+                    npm ci
                     npm install netlify-cli
+                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                     node_modules/.bin/netlify --version
                     echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
                     node_modules/.bin/netlify status

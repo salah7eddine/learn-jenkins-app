@@ -1,5 +1,8 @@
 import logo from './logo.svg';
 import './App.css';
+import packageJson from '../package.json';
+
+const appVersion = process.env.REACT_APP_VERSION || packageJson.version || '1';
 
 function App() {
   return (
@@ -16,7 +19,7 @@ function App() {
         </a>
       </header>
       <p>
-          Application version: {process.env.REACT_APP_VERSION}
+        Application version: {appVersion}
       </p>
     </div>
   );
