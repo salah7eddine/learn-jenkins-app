@@ -46,8 +46,10 @@ pipeline {
 
                     steps {
                         sh '''
-                            #test -f build/index.html
-                            npm test
+                            set -e
+                            rm -rf node_modules package-lock.json
+                            npm install
+                            CI=true npm test -- --watch=false
                         '''
                     }
                     post {
