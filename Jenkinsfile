@@ -67,10 +67,32 @@ pipeline {
 
                     steps {
                         sh '''
+                            set -e
+                            export REACT_APP_VERSION="$REACT_APP_VERSION"
+                            npm ci
+                            REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                             npm install serve
-                            node_modules/.bin/serve -s build &
-                            sleep 10
-                            npx playwright test  --reporter=html
+
+                            echo "Starting static server for Playwright"
+                            node_modules/.bin/serve -s build -l 3000 > /tmp/serve.log 2>&1 &
+                            SERVER_PID=$!
+
+                            for i in $(seq 1 30); do
+                                if curl -sf http://localhost:3000/ >/dev/null 2>&1; then
+                                    echo "Server is ready"
+                                    break
+                                fi
+                                sleep 1
+                            done
+
+                            if ! curl -sf http://localhost:3000/ >/dev/null 2>&1; then
+                                echo "Server did not become ready"
+                                cat /tmp/serve.log || true
+                                exit 1
+                            fi
+
+                            npx playwright test --reporter=html
+                            kill $SERVER_PID || true
                         '''
                     }
 
@@ -97,6 +119,7 @@ pipeline {
 
             steps {
                 sh '''
+                    export REACT_APP_VERSION="$REACT_APP_VERSION"
                     netlify --version
                     echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
                     netlify status
@@ -127,6 +150,7 @@ pipeline {
 
             steps {
                 sh '''
+                    export REACT_APP_VERSION="$REACT_APP_VERSION"
                     node --version
                     netlify --version
                     echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
