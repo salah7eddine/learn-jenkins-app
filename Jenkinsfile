@@ -9,9 +9,9 @@ pipeline {
     }
 
     stages {
-        stage('Docker build') {
+        stage('Docker') {
             steps {
-                sh 'docker build -t my-playwright-app .'
+                sh 'docker build -t my-playwright .'
             }
         }
 
@@ -28,8 +28,7 @@ pipeline {
                     node --version
                     npm --version
                     npm ci
-                    rm -rf build
-                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
+                    npm run build
                     ls -la
                 '''
             }
@@ -62,42 +61,22 @@ pipeline {
                     agent {
                         docker {
                             image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
-
                             reuseNode true
                         }
                     }
 
                     steps {
                         sh '''
-
-            rm -rf playwright-report test-results
-
-            serve -s build &
-
-            sleep 5
-
-            npx playwright test --reporter=html
-
-        '''
+                            npm install serve
+                            node_modules/.bin/serve -s build &
+                            sleep 10
+                            npx playwright test  --reporter=html
+                        '''
                     }
 
                     post {
                         always {
-                            publishHTML([
-
-                allowMissing: true,
-
-                alwaysLinkToLastBuild: false,
-
-                keepAll: false,
-
-                reportDir: 'playwright-report',
-
-                reportFiles: 'index.html',
-
-                reportName: 'Local E2E'
-
-            ])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Local E2E', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
                 }
@@ -107,7 +86,7 @@ pipeline {
         stage('Deploy staging') {
             agent {
                 docker {
-                    image 'my-playwright-app'
+                    image 'my-playwright'
                     reuseNode true
                 }
             }
@@ -118,8 +97,6 @@ pipeline {
 
             steps {
                 sh '''
-                    npm ci
-                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
                     netlify --version
                     echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
                     netlify status
@@ -136,18 +113,10 @@ pipeline {
             }
         }
 
-        stage('Approval') {
-            steps {
-                timeout(time: 15, unit: 'MINUTES') {
-                    input message: 'Do you wish to deploy to production?', ok: 'Yes, I am sure!'
-                }
-            }
-        }
-
         stage('Deploy prod') {
             agent {
                 docker {
-                    image 'my-playwright-app'
+                    image 'my-playwright'
                     reuseNode true
                 }
             }
@@ -158,12 +127,11 @@ pipeline {
 
             steps {
                 sh '''
-                    npm ci
-                    REACT_APP_VERSION="$REACT_APP_VERSION" npm run build
+                    node --version
                     netlify --version
                     echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
                     netlify status
-                    netlify deploy --dir=build --prod --no-build
+                    netlify deploy --dir=build --no-build --prod
                     npx playwright test  --reporter=html
                 '''
             }
