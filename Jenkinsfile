@@ -34,6 +34,7 @@ pipeline {
             agent {
                 docker {
                     image 'amazon/aws-cli'
+                    reuseNode true
                     args "--entrypoint=''"
                 }
             }
@@ -44,7 +45,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
                         aws --version
-                        aws s3 sync build/ s3://$AWS_S3_BUCKET
+                        aws s3 sync build s3://$AWS_S3_BUCKET
                     '''
                 }
             }
@@ -83,9 +84,12 @@ pipeline {
 
                     steps {
                         sh '''
-                            npx playwright test --reporter=html
+                            serve -s build &
+                            sleep 10
+                            npx playwright test  --reporter=html
                         '''
                     }
+
                     post {
                         always {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Local E2E', reportTitles: '', useWrapperFileDirectly: true])
