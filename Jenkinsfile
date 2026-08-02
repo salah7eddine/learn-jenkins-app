@@ -9,12 +9,12 @@ pipeline {
     }
 
     stages {
+
         stage('AWS') {
             agent {
                 docker {
-                    image 'amazon/aws-cli:latest'
-                    args '--entrypoint=""'
-                    reuseNode true
+                    image 'amazon/aws-cli'
+                    args "--entrypoint=''"
                 }
             }
             steps {
@@ -108,7 +108,7 @@ pipeline {
                     netlify --version
                     echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
                     netlify status
-                    netlify deploy --dir=build --no-build --json > deploy-output.json
+                    netlify deploy --dir=build --json > deploy-output.json
                     CI_ENVIRONMENT_URL=$(jq -r '.deploy_url' deploy-output.json)
                     npx playwright test  --reporter=html
                 '''
@@ -139,7 +139,7 @@ pipeline {
                     netlify --version
                     echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
                     netlify status
-                    netlify deploy --dir=build --no-build --prod
+                    netlify deploy --dir=build --prod
                     npx playwright test  --reporter=html
                 '''
             }
