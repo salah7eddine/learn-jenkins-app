@@ -21,11 +21,13 @@ pipeline {
             }
 
             steps {
-                sh '''
-                    set -eux
-                    aws --version
-                    ews s3 ls
-                '''
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    sh '''
+                        set -eux
+                        aws --version
+                        ews s3 ls
+                    '''
+                }
             }
         }
 
