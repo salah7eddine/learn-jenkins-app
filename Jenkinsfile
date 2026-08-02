@@ -24,6 +24,7 @@ pipeline {
                 sh '''
                     set -eux
                     aws --version
+                    ews s3 ls
                 '''
             }
         }
