@@ -14,66 +14,45 @@ pipeline {
         stage('AWS') {
             agent {
                 docker {
-                    image 'amazon/aws-cli:latest'
-                    args '--entrypoint=""'
-                    reuseNode true
+                    image 'amazon/aws-cli'
+                    args "--entrypoint=''"
                 }
             }
-
+            environment {
+                AWS_S3_BUCKET = 'your-aws-bucket-name'
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
-                        set -eux
                         aws --version
-                        ews s3 ls
+                        echo "Hello S3!" > index.html
+                        aws s3 cp index.html s3://$AWS_S3_BUCKET/index.html
                     '''
                 }
             }
         }
 
-        stage('Build Playwright image') {
-            steps {
-                sh '''
-                    set -eux
-
-                    docker build --pull -t my-playwright .
-
-                    docker run --rm my-playwright sh -c '
-                        node --version
-                        netlify --version
-                        jq --version
-                    '
-                '''
-            }
-        }
-
-        stage('Build application') {
+        stage('Build') {
             agent {
                 docker {
                     image 'node:18-alpine'
                     reuseNode true
                 }
             }
-
             steps {
                 sh '''
-                    set -eux
-
+                    ls -la
                     node --version
                     npm --version
-
                     npm ci
                     npm run build
-
-                    test -f build/index.html
-                    ls -la build
+                    ls -la
                 '''
             }
         }
 
         stage('Tests') {
             parallel {
-
                 stage('Unit tests') {
                     agent {
                         docker {
@@ -84,20 +63,18 @@ pipeline {
 
                     steps {
                         sh '''
-                            set -eux
-                            npm test -- --watchAll=false
+                            #test -f build/index.html
+                            npm test
                         '''
                     }
-
                     post {
                         always {
-                            junit allowEmptyResults: true,
-                                  testResults: 'jest-results/junit.xml'
+                            junit 'jest-results/junit.xml'
                         }
                     }
                 }
 
-                stage('Local E2E') {
+                stage('E2E') {
                     agent {
                         docker {
                             image 'my-playwright'
@@ -105,40 +82,17 @@ pipeline {
                         }
                     }
 
-                    environment {
-                        CI_ENVIRONMENT_URL = 'http://127.0.0.1:3000'
-                        PLAYWRIGHT_HTML_OUTPUT_DIR = 'playwright-report-local'
-                    }
-
                     steps {
                         sh '''
-                            set -eux
-
-                            test -f build/index.html
-
-                            serve -s build -l 3000 > serve.log 2>&1 &
-                            SERVER_PID=$!
-
-                            trap 'kill $SERVER_PID || true' EXIT
-
+                            serve -s build &
                             sleep 10
-
-                            curl --fail http://127.0.0.1:3000
-
-                            npx playwright test --reporter=html
+                            npx playwright test  --reporter=html
                         '''
                     }
 
                     post {
                         always {
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'playwright-report-local',
-                                reportFiles: 'index.html',
-                                reportName: 'Local E2E'
-                            ])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Local E2E', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
                 }
@@ -159,46 +113,18 @@ pipeline {
 
             steps {
                 sh '''
-                    set -eux
-
-                    test -f build/index.html
-
                     netlify --version
-
-                    echo "Deploying to staging"
-                    echo "Netlify Site ID: $NETLIFY_SITE_ID"
-
-                    netlify deploy \
-                        --dir=build \
-                        --no-build \
-                        --json > deploy-output.json
-
-                    cat deploy-output.json
-
-                    export CI_ENVIRONMENT_URL="$(jq -r '.deploy_url' deploy-output.json)"
-
-                    test -n "$CI_ENVIRONMENT_URL"
-                    test "$CI_ENVIRONMENT_URL" != "null"
-
-                    echo "Staging URL: $CI_ENVIRONMENT_URL"
-
-                    npx playwright test --reporter=html
+                    echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
+                    netlify status
+                    netlify deploy --dir=build --json > deploy-output.json
+                    CI_ENVIRONMENT_URL=$(jq -r '.deploy_url' deploy-output.json)
+                    npx playwright test  --reporter=html
                 '''
             }
 
             post {
                 always {
-                    archiveArtifacts artifacts: 'deploy-output.json',
-                                     allowEmptyArchive: true
-
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'playwright-report-staging',
-                        reportFiles: 'index.html',
-                        reportName: 'Staging E2E'
-                    ])
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Staging E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
@@ -217,45 +143,18 @@ pipeline {
 
             steps {
                 sh '''
-                    set -eux
-
-                    test -f build/index.html
-
-                    echo "Deploying to production"
-                    echo "Netlify Site ID: $NETLIFY_SITE_ID"
-
-                    netlify deploy \
-                        --dir=build \
-                        --no-build \
-                        --prod \
-                        --json > deploy-prod-output.json
-
-                    cat deploy-prod-output.json
-
-                    export CI_ENVIRONMENT_URL="$(jq -r '.url // .deploy_url' deploy-prod-output.json)"
-
-                    test -n "$CI_ENVIRONMENT_URL"
-                    test "$CI_ENVIRONMENT_URL" != "null"
-
-                    echo "Production URL: $CI_ENVIRONMENT_URL"
-
-                    npx playwright test --reporter=html
+                    node --version
+                    netlify --version
+                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                    netlify status
+                    netlify deploy --dir=build --prod
+                    npx playwright test  --reporter=html
                 '''
             }
 
             post {
                 always {
-                    archiveArtifacts artifacts: 'deploy-prod-output.json',
-                                     allowEmptyArchive: true
-
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'playwright-report-prod',
-                        reportFiles: 'index.html',
-                        reportName: 'Production E2E'
-                    ])
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'Prod E2E', reportTitles: '', useWrapperFileDirectly: true])
                 }
             }
         }
