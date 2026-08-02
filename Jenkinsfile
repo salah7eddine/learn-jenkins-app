@@ -10,6 +10,21 @@ pipeline {
 
     stages {
 
+        stage('AWS') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh '''
+                    aws --version
+                    aws sts get-caller-identity
+                '''
+            }
+        }
+
         stage('Build') {
             agent {
                 docker {
