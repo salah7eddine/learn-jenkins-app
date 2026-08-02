@@ -34,6 +34,14 @@ module.exports = defineConfig({
     trace: 'on-first-retry',
   },
 
+  /* Run your local built app before starting the tests. */
+  webServer: process.env.CI_ENVIRONMENT_URL ? undefined : {
+    command: 'npx serve -s build --listen 3000',
+    url: 'http://127.0.0.1:3000',
+    timeout: 120 * 1000,
+    reuseExistingServer: !process.env.CI,
+  },
+
   /* Configure projects for major browsers */
   projects: [
     {
