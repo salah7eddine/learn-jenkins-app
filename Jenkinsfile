@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     environment {
-        NETLIFY_SITE_ID    = '57eb8420-2bbc-4e06-bda1-ba3a8acde380'
-        NETLIFY_AUTH_TOKEN = credentials('netlify-auth-token')
         REACT_APP_VERSION  = "1.0.${BUILD_ID}"
         NODE_OPTIONS       = '--max-old-space-size=4096'
         CI                 = 'true'
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
     stages {
@@ -19,7 +18,7 @@ pipeline {
                     args "--entrypoint=''"
                 }
             }
-            
+
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     sh '''
